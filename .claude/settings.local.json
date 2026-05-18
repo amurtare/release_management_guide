@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Select-String -Path \"D:\\\\Git\\\\release_management_guide\\\\RELEASE_MANAGEMENT_GUIDE.md\" -Pattern \"^## \")",
+      "Bash(Select-Object LineNumber, Line)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git remote *)",
+      "Bash(start *)",
+      "Bash(rtk git *)",
+      "PowerShell(Get-Command *)"
+    ]
+  }
+}

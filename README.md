@@ -1,93 +1,76 @@
 # release_management_guide
 
+버전 관리 + 업데이트 체계를 다른 프로젝트에 이식하기 위한 가이드 저장소.
 
+---
 
-## Getting started
+## 이 저장소의 역할
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+`RELEASE_MANAGEMENT_GUIDE.md` 한 파일이 핵심이다. 새 프로젝트에 릴리즈 관리 체계를 구축할 때 이 파일을 참조해 그대로 적용하거나 프로젝트 특성에 맞게 조정한다.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+### 파일 구분
 
-## Add your files
+| 파일 | 용도 | 다른 프로젝트에 복사 |
+|------|------|---------------------|
+| `RELEASE_MANAGEMENT_GUIDE.md` | 가이드 본체 | ✅ 참조/적용 대상 |
+| `README.md` | 이 저장소 설명 | — |
+| `index.html` | 정적 웹페이지 (가이드 뷰어) | — |
+| `CLAUDE.md` | 이 저장소 유지보수 전용 | ❌ 복사 불필요 |
+| `.claude/` | 이 저장소 유지보수 전용 | ❌ 복사 불필요 |
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+---
 
-```
-cd existing_repo
-git remote add origin https://gitlab.nexon.com/amurtare/release_management_guide.git
-git branch -M main
-git push -uf origin main
-```
+## 가이드 구성 요약
 
-## Integrate with your tools
+| 섹션 | 내용 | 필수/선택 |
+|------|------|---------|
+| 1단계 — 버전 번호 관리 방식 정의 | Semver 규칙, 프리릴리즈 식별자, 버전 소스 관리, Git 태그 | 필수 |
+| 2단계 — 디렉토리 구조 생성 | 표준 폴더 구조 + 설치 체크리스트 | 필수 |
+| 3단계 — 업데이트 체크리스트 작성 | `docs/UPDATE_CHECKLIST.md` 템플릿 | 필수 |
+| 4단계 — 릴리즈 노트 형식 정의 | `release-notes/vX.Y.Z.md` 표준 포맷 | 필수 |
+| 5단계 — CLAUDE.md 트리거 등록 | Claude Code에 자동 실행 트리거 등록 | 필수 |
+| 6단계 — 업데이트 수신 메커니즘 구축 | 앱 내 배너, CLI 알림 등 형태별 사례 | 선택 |
+| 확장 — project-memory 연동 | 개발 맥락 누적 + SessionStart/Stop hook | 선택 |
 
-- [ ] [Set up project integrations](https://gitlab.nexon.com/amurtare/release_management_guide/-/settings/integrations)
+---
 
-## Collaborate with your team
+## 다른 저장소에 적용할 때
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+### 1. 가이드 파일 읽기
 
-## Test and Deploy
+`RELEASE_MANAGEMENT_GUIDE.md`를 읽고 대상 저장소의 현재 상태를 파악한다.
 
-Use the built-in continuous integration in GitLab.
+### 2. 적용 계획 수립 시 확인할 항목
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+- **저장소 유형**: 소프트웨어 프로젝트 / 기획 문서 / 라이브러리 등
+- **언어·프레임워크**: 버전 소스 파일 위치 결정에 필요 (`package.json`, `Cargo.toml`, `pyproject.toml` 등)
+- **버전 필드 존재 여부**: 없으면 추가 필요
+- **기존 릴리즈 관리 흔적**: 이미 `CHANGELOG`, `release-notes/` 등이 있는지
+- **Claude Code 사용 여부**: CLAUDE.md 트리거 등록 필요성 판단
+- **project-memory 확장 적용 여부**: 에이전트와 협업이 잦거나 세션 간 맥락 보존이 필요한 경우 적용
 
-***
+### 3. 조정이 필요한 부분
 
-# Editing this README
+| 항목 | 조정 방법 |
+|------|----------|
+| 체크리스트 빌드 명령 | 프로젝트 빌드 도구에 맞게 교체 (`npm`, `cargo`, `go build` 등) |
+| 체크리스트 섹션 구성 | 백엔드 없으면 보안 점검 섹션 생략, DB 있으면 마이그레이션 항목 추가 등 |
+| Semver 해석 | 소프트웨어가 아닌 경우 재정의 (예: 기획 문서는 MAJOR=방향 전환, MINOR=섹션 추가) |
+| 6단계 수신 메커니즘 | 저장소 형태에 맞는 방식 선택 (웹앱/CLI/라이브러리/문서) |
+| project-memory hook 경로 | `SUPPRESS_MARKER` 경로를 프로젝트 전용으로 변경 |
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+### 4. 적용 순서
 
-## Suggestions for a good README
+1. 2단계 설치 체크리스트를 기준으로 현재 누락된 항목 파악
+2. 필수 섹션(1~5단계)부터 순서대로 적용
+3. project-memory 확장은 별도 작업으로 분리해 적용
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+---
 
-## Name
-Choose a self-explaining name for your project.
+## 저장소 유형별 적용 참고
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+| 저장소 유형 | 그대로 적용 | 조정 필요 | 해당 없음 |
+|-------------|------------|-----------|----------|
+| 소프트웨어 / 도구 | 전체 | 빌드 명령, 체크리스트 항목 | — |
+| 기획 / 문서 | project-memory, hook, 버전 개념 | Semver 해석, 체크리스트 | 6단계 수신 메커니즘 |
+| 라이브러리 / 패키지 | 1~5단계 | 체크리스트 | 6단계 (패키지 매니저가 처리) |
