@@ -310,7 +310,7 @@ export async function fetchLatestRelease() {
 
 > 이 기능이 동작하려면 Git 태그가 GitLab Release로 등록되어 있어야 한다.
 >
-> 비공개 저장소에서는 토큰이 필요하다. 토큰 부담 없이 구현하고 싶다면 `git fetch` + `git show origin/main:package.json` 같은 Git CLI 기반 방식도 가능 (사용자가 `git clone`으로 설치한 경우에 한해).
+> 비공개 저장소에서는 PAT(Personal Access Token)가 필요하다. 발급 방법은 [GitLab Personal Access Token 발급 가이드](https://www.notion.so/nexoncompany/GitLab-Personal-Access-Token-Mac-Windows-33ddadb56b2f810e83bee7dfe80bf835)를 참고한다. 토큰 부담 없이 구현하고 싶다면 `git fetch` + `git show origin/main:package.json` 같은 Git CLI 기반 방식도 가능 (사용자가 `git clone`으로 설치한 경우에 한해).
 
 ---
 

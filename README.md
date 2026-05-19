@@ -34,6 +34,16 @@
 
 ---
 
+## 사전 조건
+
+| 조건 | 필수/선택 | 비고 |
+|------|---------|------|
+| Git | 필수 | 버전 태그, 브랜치 관리 전반 |
+| Claude Code | 필수 | 5단계 CLAUDE.md 트리거 등록에 필요 |
+| GitLab PAT | 필수 | 비공개 저장소 + 6단계 Releases API 사용 시 필요. [발급 가이드](https://www.notion.so/nexoncompany/GitLab-Personal-Access-Token-Mac-Windows-33ddadb56b2f810e83bee7dfe80bf835) 참고 |
+
+---
+
 ## 다른 저장소에 적용할 때
 
 ### 1. 가이드 파일 읽기
