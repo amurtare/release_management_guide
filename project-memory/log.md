@@ -2,6 +2,17 @@
 
 <!-- append-only. 형식: ## [YYYY-MM-DD] <kind> | <한 줄 제목> -->
 
+## [2026-05-19] ops | iShare 호스팅 배포 완료
+
+- bundle_id: 1237, version: 1.0.0, version_id: 5356
+- bundle_name: `release-management-guide-by-amurtare`, private, HTML 3개(index/wsl-setup/gitlab-pat-setup)
+
+## [2026-05-19] ops | iShare 호스팅 배포 시도 — ISHARE_TOKEN 문제로 중단
+
+- `release-management-guide-by-amurtare` 번들명, 본인 전용(private), HTML 3개(index/wsl-setup/gitlab-pat-setup)
+- `.env` 파일 작성 후 재시도 필요 (handoff.md에 명령어 기록됨)
+- 세션 컨텍스트 소실 문제: "이어서 진행해줘" 요청 시 새 세션이 맥락을 못 찾음 → handoff.md를 구체적으로 유지하는 게 해법
+
 ## [2026-05-19] release | v0.1.0 — 릴리즈 관리 체계 이 저장소에 적용 완료
 
 - GitLab 전용으로 전환 (GitHub 레퍼런스 전면 제거)
