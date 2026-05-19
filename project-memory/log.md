@@ -28,6 +28,12 @@
 - index.html SVG/JS 하드코딩 `oklch(0.30 0.04 245)` → `--p5-dark` 로 통일
 - html-design-guide.md 섹션 1.1 팔레트 확장 규칙 신설
 
+## [2026-05-19] design | hero + Quick Start 섹션 통합
+
+- hero `<div>`와 별도 `<section id="quickstart">` 두 개로 나뉘어 있던 구조를 하나로 합침
+- `ref/index.html` 패턴 참고 — 소개 lede 바로 아래에 카드 그리드가 이어지는 방식
+- `sec-head` / `sec-eyebrow` / `sec-title` / `sec-sub` 헤딩 블록 제거, nav anchor `#quickstart`는 hero div에 id로 유지
+
 ## [2026-05-19] research | 앤트로픽 공식 브랜드 컬러 확인
 
 - 출처: github.com/anthropics/skills/blob/main/skills/brand-guidelines/SKILL.md

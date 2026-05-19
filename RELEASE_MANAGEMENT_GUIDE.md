@@ -13,8 +13,8 @@
 | `release-notes/v{버전}.md` | 버전별 변경 내역 문서 |
 | Git 태그 | 코드베이스에서 버전 지점 고정 |
 | `CLAUDE.md` | Claude Code에 체크리스트 자동 실행 트리거 등록 |
-| `project-memory/` (선택) | 개발 맥락 누적 — 설계 결정·함정·히스토리 |
-| `.claude/hooks/` (선택) | SessionStart/Stop hook — 세션 시작·종료 시 자동 컨텍스트 주입·회고 |
+| `project-memory/` | 개발 맥락 누적 — 설계 결정·함정·히스토리 |
+| `.claude/hooks/` | SessionStart/Stop hook — 세션 시작·종료 시 자동 컨텍스트 주입·회고 |
 
 ---
 
@@ -106,7 +106,7 @@ project-root/
 │   └── UPDATE_CHECKLIST.md
 ├── release-notes/
 │   └── v0.1.0.md
-├── project-memory/              ← (선택) 확장 섹션 참고
+├── project-memory/
 │   ├── index.md
 │   ├── log.md
 │   ├── decisions/
@@ -115,7 +115,7 @@ project-root/
 │   ├── open-questions.md
 │   └── insight/
 │       └── README.md
-└── .claude/                     ← (선택) hook
+└── .claude/
     ├── settings.json
     └── hooks/
         ├── session_start_brief.py
@@ -130,9 +130,9 @@ project-root/
 - [ ] `docs/UPDATE_CHECKLIST.md` 생성
 - [ ] `release-notes/` 디렉토리 생성 + `v{현재버전}.md` 작성
 - [ ] `CLAUDE.md`에 트리거 등록 (5단계 참고)
-- [ ] (선택) 앱 내 업데이트 배너 구현 (6단계 참고)
-- [ ] (선택) `project-memory/` 디렉토리 구조 생성 (확장 섹션 참고)
-- [ ] (선택) SessionStart/Stop hook 설정
+- [ ] 앱 내 업데이트 배너 구현 (6단계 참고)
+- [ ] `project-memory/` 디렉토리 구조 생성 (7단계 참고)
+- [ ] SessionStart/Stop hook 설정
 
 ---
 
@@ -177,7 +177,7 @@ project-root/
 - [ ] `npm run dev` — 실행 후 주요 페이지 동작 확인
 - [ ] 새 기능의 정상 동작 수동 확인
 
-## 6. project-memory 갱신 점검 (선택 — project-memory 확장 적용 시)
+## 6. project-memory 갱신 점검
 
 이번 릴리즈에서 다음 중 하나라도 변경됐으면 `project-memory/`도 같이 갱신한다.
 **stale한 project-memory는 거짓말 소스가 되므로** 빠뜨리지 말 것.
@@ -203,7 +203,7 @@ project-root/
 > - 섹션 3은 README 구조에 맞게 항목을 교체한다.
 > - 섹션 4는 백엔드가 없는 프로젝트라면 전체 생략해도 된다.
 > - 섹션 5의 빌드 명령은 프레임워크에 맞게 바꾼다 (예: `cargo build`, `go build`).
-> - 섹션 6은 project-memory 확장을 적용하지 않은 경우 전체 생략해도 된다.
+> - 섹션 6은 project-memory 갱신이 필요 없는 순수 문서 수정 릴리즈라면 생략 가능하다.
 
 ---
 
@@ -253,12 +253,12 @@ project-root/
 - 버전 배포 시 반드시 릴리즈 노트를 작성한다
 - 원격 저장소의 릴리즈 노트는 업데이트 배너에서 사용자에게 표시된다
 
-## 세션 시작 시 project-memory 참조 (project-memory 확장 적용 시)
+## 세션 시작 시 project-memory 참조
 
 > **세션 시작 시 가장 먼저**: 비자명한 작업(코드 변경, 설계 논의, 릴리즈 준비, 디버깅)
 > 전에 [project-memory/index.md](project-memory/index.md)를 훑고 관련 페이지로 진입할 것.
 
-## 메인테이너 워크플로 (project-memory 확장 적용 시)
+## 메인테이너 워크플로
 
 언제 project-memory를 갱신하나:
 - 설계 결정을 내렸을 때 → `project-memory/decisions/<topic>.md`
@@ -314,7 +314,7 @@ export async function fetchLatestRelease() {
 
 ---
 
-## 확장 — project-memory 연동 (선택)
+## 7단계 — project-memory 연동
 
 ### 왜 이걸 하는가
 
@@ -779,8 +779,8 @@ llm-wiki-scaffold를 동시에 적용할 경우 `wiki/`와 `project-memory/`는 
     ↓
 UPDATE_CHECKLIST.md 항목 순서대로 실행
     ├── release-notes/v{버전}.md 신규 작성
-    ├── project-memory/log.md append (선택)
-    ├── project-memory/ 관련 페이지 갱신 점검 (선택)
+    ├── project-memory/log.md append
+    ├── project-memory/ 관련 페이지 갱신 점검
     ├── package.json 버전 갱신
     ├── README.md 필요 섹션 갱신
     └── 빌드 & 보안 점검
