@@ -803,4 +803,4 @@ git push origin main && git push origin v0.X.Y
 | 공개 API가 있는 경우 | 섹션 3에 API 문서 갱신 확인 추가 |
 | CI/CD 파이프라인이 있는 경우 | 섹션 6에 파이프라인 통과 확인 추가 |
 | GitLab Release를 사용하는 경우 | 섹션 6에 Release 페이지 생성 확인 추가 |
-| project-memory 확장을 적용한 경우 | 커밋 전에 project-memory 갱신 점검 섹션 추가 |
+| project-memory 관련 맥락 변화가 있는 경우 | 커밋 전에 project-memory 갱신 점검 섹션 추가 |
