@@ -9,7 +9,18 @@
       "Bash(git remote *)",
       "Bash(start *)",
       "Bash(rtk git *)",
-      "PowerShell(Get-Command *)"
+      "PowerShell(Get-Command *)",
+      "Skill(notion-pat-skills:notion-convert-md)",
+      "Bash(python -c ' *)",
+      "Bash(python __TRACKED_VAR__/notion-convert-md/scripts/convert_md.py 469b27a775b9438fa38466deb60e8427 --stdout)",
+      "Bash(python __TRACKED_VAR__/notion-convert-md/scripts/convert_md.py 469b27a775b9438fa38466deb60e8427)",
+      "Bash(Copy-Item *)",
+      "PowerShell(Copy-Item *)",
+      "Bash(git commit *)",
+      "Bash(mkdir -p \"D:\\\\Git\\\\release_management_guide\\\\release-notes\")",
+      "Bash(mkdir -p \"D:\\\\Git\\\\release_management_guide\\\\docs\")",
+      "Bash(git tag *)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }

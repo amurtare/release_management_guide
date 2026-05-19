@@ -29,6 +29,16 @@
   --p3-soft:    oklch(0.94 0.06 85);
   --p4-soft:    oklch(0.92 0.04 320);
   --p5-soft:    oklch(0.93 0.03 200);
+  --p1-dark:    oklch(0.44 0.10 48);
+  --p2-dark:    oklch(0.38 0.09 148);
+  --p3-dark:    oklch(0.48 0.11 85);
+  --p4-dark:    oklch(0.30 0.10 320);
+  --p5-dark:    oklch(0.32 0.06 200);
+  --p1-muted:   oklch(0.70 0.07 48);
+  --p2-muted:   oklch(0.64 0.07 148);
+  --p3-muted:   oklch(0.74 0.08 85);
+  --p4-muted:   oklch(0.56 0.07 320);
+  --p5-muted:   oklch(0.58 0.05 200);
   --code-bg:    oklch(0.17 0.022 245);
   --code-ink:   oklch(0.88 0.015 85);
   --f-display:  "Newsreader", ui-serif, Georgia, serif;
@@ -83,7 +93,7 @@ body::after {
 
 /* ── Shell & Wrap ── */
 .shell { position: relative; z-index: 2; }
-.wrap { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 1.5rem; }
 
 /* ── Sticky Nav ── */
 .nav-bar {
@@ -259,8 +269,8 @@ p a { color: var(--accent, var(--p2)); text-decoration: underline; text-decorati
 code {
   font-family: var(--f-mono);
   font-size: 0.82em;
-  background: oklch(0.91 0.025 85);
-  color: oklch(0.32 0.10 148);
+  background: var(--bg-deep);
+  color: var(--p2-dark);
   padding: 0.1em 0.35em;
   border-radius: 4px;
 }
@@ -327,7 +337,7 @@ td strong { color: var(--ink); font-weight: 600; }
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: oklch(0.62 0.06 148);
+  color: var(--p2-muted);
   font-weight: 500;
 }
 .copy-btn {
@@ -409,7 +419,7 @@ pre code { background: none; color: inherit; padding: 0; font-size: inherit; bor
   padding: 0.15rem 0.55rem;
   border-radius: var(--r-pill);
   background: var(--p2-soft);
-  color: oklch(0.38 0.13 148);
+  color: var(--p2-dark);
 }
 .badge.opt {
   background: var(--surface-alt);
@@ -457,7 +467,7 @@ footer {
 /* ── Quick Start Cards ── */
 .qs-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1rem;
   margin: 0 0 0.5rem;
 }
@@ -470,9 +480,7 @@ footer {
   box-shadow: var(--e1);
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
 }
-.qs-card:hover { transform: translateY(-3px); box-shadow: var(--e3); }
 .qs-num {
   display: inline-flex;
   align-items: baseline;
@@ -534,6 +542,21 @@ footer {
   background: oklch(0.96 0.012 85);
   margin-top: 0.6rem;
   line-height: 1.6;
+  overflow-x: auto;
+  color: var(--ink);
+}
+.qs-prompt {
+  font-family: var(--f-mono);
+  font-size: 0.8rem;
+  line-height: 1.65;
+  color: var(--ink);
+  background: oklch(0.96 0.012 85);
+  border-left: 2px solid var(--c, var(--p2));
+  padding: 0.55rem 0.75rem;
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  margin: 0.5rem 0 0.65rem;
+  word-break: break-word;
+  white-space: normal;
 }
 .qs-result {
   font-size: 0.78rem;
@@ -624,7 +647,7 @@ footer {
 .wd-body code { font-family: var(--f-mono); font-size: 0.83em; background: var(--code-bg); color: var(--code-ink); padding: 0.1em 0.35em; border-radius: 3px; }
 
 /* ── Responsive ── */
-@media (max-width: 960px) { .qs-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 960px) { .qs-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .qs-grid { grid-template-columns: 1fr; } }
 
 /* ── Info Cards (범용) ── */
@@ -658,8 +681,8 @@ footer {
 .info-card-desc strong { color: var(--ink); }
 .info-card-desc code {
   font-size: 0.8em;
-  background: oklch(0.91 0.025 85);
-  color: oklch(0.32 0.10 148);
+  background: var(--bg-deep);
+  color: var(--p2-dark);
   padding: 0.1em 0.35em;
   border-radius: 3px;
 }
@@ -680,8 +703,20 @@ footer {
   margin-bottom: 0.5rem;
 }
 /* 프로젝트 유형 카드 (4열) */
-.type-grid { grid-template-columns: repeat(4, 1fr); }
-@media (max-width: 760px) { .type-grid { grid-template-columns: repeat(2, 1fr); } }
+.type-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 760px) { .type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* info-grid 열 수 변형 — auto-fit 금지, 열 수 명시 */
+.info-grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.info-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 800px) {
+  .info-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .info-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .info-grid-4 { grid-template-columns: 1fr; }
+  .info-grid-3 { grid-template-columns: 1fr; }
+}
 
 @media (max-width: 640px) {
   .hero { padding: 3.5rem 0 3rem; }
@@ -726,6 +761,20 @@ footer {
   transition: stroke-dashoffset 0.35s var(--ease-out);
 }
 .wf-line.drawn { stroke-dashoffset: 0; }
+
+/* ── Accessibility ── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+:focus-visible {
+  outline: 2px solid var(--accent, var(--p2));
+  outline-offset: 2px;
+}
+:focus:not(:focus-visible) { outline: none; }
+::selection { background: oklch(0.56 0.13 148 / 0.25); color: var(--ink); }
 </style>
 </head>
 <body>
@@ -775,13 +824,13 @@ footer {
         <div class="qs-body">
           <p style="margin-bottom:0.5rem;font-size:0.85rem;color:var(--ink-soft);">터미널에서 실행하고 결과를 확인한다.</p>
           <pre>$ git --version
-git version 2.43.0   ← OK
+git version 2.43.0 ← OK
 
 $ git config user.name
-홍길동               ← OK
+홍길동 ← OK
 
 $ git config user.email
-hong@company.com     ← OK</pre>
+hong@company.com ← OK</pre>
           <div class="qs-result">git 미설치: <code>winget install Git.Git</code> (Win) / <code>brew install git</code> (Mac)<br>
             이름·이메일 미설정: <code>git config --global user.name "이름"</code> / <code>git config --global user.email "이메일"</code>
           </div>
@@ -806,8 +855,7 @@ hong@company.com     ← OK</pre>
         <div class="qs-title">가이드 저장소 클론</div>
         <div class="qs-body">
           <p style="margin-bottom:0.5rem;font-size:0.85rem;color:var(--ink-soft);">가이드 본체를 로컬에 받아둔다. (최초 1회)</p>
-          <pre>git clone https://gitlab.nexon.com/\
-  amurtare/release_management_guide.git</pre>
+          <pre>git clone https://gitlab.nexon.com/amurtare/release_management_guide.git</pre>
           <div class="qs-result">클론한 경로를 메모해둔다. 다음 단계에서 Claude Code에 전달한다.</div>
         </div>
       </div>
@@ -817,10 +865,9 @@ hong@company.com     ← OK</pre>
         <div class="qs-title">프로젝트에 적용</div>
         <div class="qs-body">
           <p style="margin-bottom:0.5rem;font-size:0.85rem;color:var(--ink-soft);">적용할 프로젝트 폴더에서 Claude Code를 열고 입력한다.</p>
-          <pre>"[클론 경로]/RELEASE_MANAGEMENT_GUIDE.md
-를 참고해서 이 프로젝트에 릴리즈 관리
-적용해줘"</pre>
-          <p style="margin-top:0.6rem;margin-bottom:0.3rem;font-size:0.82rem;color:var(--ink-soft);">Claude Code가 자동으로 생성하는 파일:</p>
+          <div class="qs-prompt">"[클론 경로]/RELEASE_MANAGEMENT_GUIDE.md를 참고해서 이 프로젝트에 릴리즈 관리 적용해줘"</div>
+          <p style="font-size:0.75rem;color:var(--ink-muted);margin:0.25rem 0 0.6rem;">경로 구분자: Windows <code>\</code> · Mac/Linux <code>/</code></p>
+          <p style="margin-bottom:0.3rem;font-size:0.82rem;color:var(--ink-soft);">Claude Code가 자동으로 구성하는 항목:</p>
           <div class="qs-row"><span><code>docs/UPDATE_CHECKLIST.md</code></span></div>
           <div class="qs-row"><span><code>release-notes/v0.1.0.md</code></span></div>
           <div class="qs-row"><span><code>CLAUDE.md</code> 트리거 등록</span></div>
@@ -858,7 +905,7 @@ hong@company.com     ← OK</pre>
           <line class="wf-line" x1="296" x2="402" y1="105" y2="105" stroke="oklch(0.56 0.13 148)" stroke-width="2" marker-end="url(#wfArrow)" opacity="0.7"/>
           <line class="wf-line" x1="476" x2="582" y1="105" y2="105" stroke="oklch(0.50 0.09 200)" stroke-width="2" marker-end="url(#wfArrow)" opacity="0.7"/>
           <line class="wf-line" x1="656" x2="762" y1="105" y2="105" stroke="oklch(0.48 0.14 320)" stroke-width="2" marker-end="url(#wfArrow)" opacity="0.7"/>
-          <line class="wf-line" x1="836" x2="942" y1="105" y2="105" stroke="oklch(0.30 0.04 245)" stroke-width="2" marker-end="url(#wfArrow)" opacity="0.7"/>
+          <line class="wf-line" x1="836" x2="942" y1="105" y2="105" stroke="oklch(0.32 0.06 200)" stroke-width="2" marker-end="url(#wfArrow)" opacity="0.7"/>
 
           <!-- 노드 1: 개발 (p1 48°) -->
           <text x="80" y="42" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="oklch(0.62 0.14 48)" letter-spacing="0.04em">feature branch</text>
@@ -906,10 +953,10 @@ hong@company.com     ← OK</pre>
           <text x="800" y="179" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" font-weight="500" fill="oklch(0.55 0.02 245)" letter-spacing="0.08em">COMMIT</text>
 
           <!-- 노드 6: 배포 (ink 245°) -->
-          <text x="980" y="42" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="oklch(0.30 0.04 245)" letter-spacing="0.04em">git push</text>
-          <circle cx="980" cy="105" r="36" fill="oklch(0.30 0.04 245)" opacity="0.12" filter="url(#wfGlow)"/>
-          <circle cx="980" cy="105" r="30" fill="oklch(0.985 0.012 88)" stroke="oklch(0.30 0.04 245)" stroke-width="2"/>
-          <circle cx="980" cy="105" r="18" fill="oklch(0.30 0.04 245)" class="wf-node-dot" id="wfDot5"/>
+          <text x="980" y="42" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" fill="oklch(0.32 0.06 200)" letter-spacing="0.04em">git push</text>
+          <circle cx="980" cy="105" r="36" fill="oklch(0.32 0.06 200)" opacity="0.12" filter="url(#wfGlow)"/>
+          <circle cx="980" cy="105" r="30" fill="oklch(0.985 0.012 88)" stroke="oklch(0.32 0.06 200)" stroke-width="2"/>
+          <circle cx="980" cy="105" r="18" fill="oklch(0.32 0.06 200)" class="wf-node-dot" id="wfDot5"/>
           <text x="980" y="110" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="14" font-weight="600" fill="oklch(0.985 0.012 88)" style="pointer-events:none">6</text>
           <text x="980" y="162" text-anchor="middle" font-family="Newsreader, serif" font-size="18" font-weight="500" fill="oklch(0.18 0.03 245)">배포</text>
           <text x="980" y="179" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9" font-weight="500" fill="oklch(0.55 0.02 245)" letter-spacing="0.08em">PUSH</text>
@@ -927,7 +974,7 @@ hong@company.com     ← OK</pre>
       <div class="sec-eyebrow"><span class="num">Overview</span></div>
       <h2 class="sec-title">구성 <em>요소</em></h2>
     </div>
-    <div class="info-grid reveal reveal-d1" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+    <div class="info-grid info-grid-4 reveal reveal-d1">
       <div class="info-card" style="--c: var(--p1);">
         <div class="info-card-name">package.json</div>
         <div class="info-card-desc">버전 번호 단일 소스 (또는 언어별 매니페스트)</div>
@@ -948,11 +995,11 @@ hong@company.com     ← OK</pre>
         <div class="info-card-name">CLAUDE.md</div>
         <div class="info-card-desc">Claude Code에 체크리스트 자동 실행 트리거 등록</div>
       </div>
-      <div class="info-card" style="--c: var(--p1);">
+      <div class="info-card" style="--c: var(--p1-dark);">
         <div class="info-card-name">project-memory/ <span class="badge opt">선택</span></div>
         <div class="info-card-desc">개발 맥락 누적 — 설계 결정·함정·히스토리</div>
       </div>
-      <div class="info-card" style="--c: var(--p3);">
+      <div class="info-card" style="--c: var(--p3-dark);">
         <div class="info-card-name">.claude/hooks/ <span class="badge opt">선택</span></div>
         <div class="info-card-desc">SessionStart/Stop hook — 세션 시작·종료 시 자동 컨텍스트 주입·회고</div>
       </div>
@@ -970,7 +1017,7 @@ hong@company.com     ← OK</pre>
 
     <h3>Semver 규칙</h3>
     <p><code>MAJOR.MINOR.PATCH</code> 형식을 따른다 (<a href="https://semver.org">semver.org</a>).</p>
-    <div class="info-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="info-grid info-grid-3">
       <div class="info-card seg-card" style="--c: var(--p1);">
         <div class="info-card-name">MAJOR</div>
         <div class="info-card-desc">기존 사용자가 즉시 영향을 받는 <strong>호환성 파괴</strong> 변경</div>
@@ -1292,7 +1339,7 @@ export async function fetchLatestRelease() {
     </div>
 
     <h3>project-memory/ 구조 상세</h3>
-    <div class="info-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+    <div class="info-grid info-grid-4">
       <div class="info-card" style="--c: var(--p1);">
         <div class="info-card-name">index.md</div>
         <div class="info-card-desc">세션 시작 진입점. 카테고리별 한 줄 요약 + 링크.</div>
@@ -1313,11 +1360,11 @@ export async function fetchLatestRelease() {
         <div class="info-card-name">components.md</div>
         <div class="info-card-desc">아키텍처/의존 맵. 구조 변경 시 갱신.</div>
       </div>
-      <div class="info-card" style="--c: var(--p2);">
+      <div class="info-card" style="--c: var(--p1-dark);">
         <div class="info-card-name">open-questions.md</div>
         <div class="info-card-desc">미해결 이슈. 상태 / 관찰 / 가설 / 다음 단계. 해결 시 decisions/gotchas로 이동.</div>
       </div>
-      <div class="info-card" style="--c: var(--p3);">
+      <div class="info-card" style="--c: var(--p3-dark);">
         <div class="info-card-name">insight/</div>
         <div class="info-card-desc">raw 메모. 두 번 이상 참조 시 본체(decisions/gotchas)로 승격.</div>
       </div>
@@ -1719,7 +1766,7 @@ if __name__ == "__main__":
     <div class="sec-head">
       <h2 class="sec-title">체크리스트 항목 <em>추가 기준</em></h2>
     </div>
-    <div class="info-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+    <div class="info-grid info-grid-3">
       <div class="info-card" style="--c: var(--p5);">
         <div class="info-card-name">DB 마이그레이션이 있는 경우</div>
         <div class="info-card-desc">섹션 5에 마이그레이션 실행 확인 추가</div>
@@ -1809,32 +1856,32 @@ sections.forEach(s => observer.observe(s));
 const wfStages = [
   {
     id: 1, label: '개발', en: 'DEVELOP', key: 'feature branch',
-    color: 'oklch(0.62 0.14 48)', soft: 'var(--p1-soft)',
+    color: 'var(--p1)', soft: 'var(--p1-soft)',
     body: '새 기능이 완성된 시점. 브랜치가 main에 머지되거나 직접 commit 완성. 이 시점부터 릴리즈 프로세스가 시작된다.'
   },
   {
     id: 2, label: '결정', en: 'DECIDE', key: 'MAJOR / MINOR / PATCH',
-    color: 'oklch(0.66 0.16 85)', soft: 'var(--p3-soft)',
+    color: 'var(--p3)', soft: 'var(--p3-soft)',
     body: '변경이 기존 사용자에게 미치는 영향을 기준으로 세그먼트를 결정. <strong>호환성 파괴 → MAJOR</strong>, 새 기능 → MINOR, 버그 수정 → PATCH.'
   },
   {
     id: 3, label: '요청', en: 'REQUEST', key: 'Claude Code',
-    color: 'oklch(0.56 0.13 148)', soft: 'var(--p2-soft)',
+    color: 'var(--p2)', soft: 'var(--p2-soft)',
     body: '"버전 올려줘"를 Claude Code에 입력하면 <strong>CLAUDE.md 트리거</strong>가 발동해 UPDATE_CHECKLIST.md를 자동 실행. 직접 실행도 가능.'
   },
   {
     id: 4, label: '체크리스트', en: 'CHECKLIST', key: 'UPDATE_CHECKLIST.md',
-    color: 'oklch(0.50 0.09 200)', soft: 'var(--p5-soft)',
+    color: 'var(--p5)', soft: 'var(--p5-soft)',
     body: '<strong>release-notes 작성</strong>, project-memory/log.md append, package.json 버전 갱신, README 갱신, 빌드·보안 점검을 순서대로 실행.'
   },
   {
     id: 5, label: '커밋', en: 'COMMIT', key: 'git tag',
-    color: 'oklch(0.48 0.14 320)', soft: 'var(--p4-soft)',
+    color: 'var(--p4)', soft: 'var(--p4-soft)',
     body: '모든 변경을 <code>v0.X.Y: 변경 요약</code> 형식으로 커밋. <strong>git tag</strong>로 코드베이스 버전 지점 고정.'
   },
   {
     id: 6, label: '배포', en: 'PUSH', key: 'git push',
-    color: 'oklch(0.30 0.04 245)', soft: 'oklch(0.94 0.02 245)',
+    color: 'var(--p5-dark)', soft: 'var(--p5-soft)',
     body: 'main + 버전 태그를 원격에 푸시. <strong>GitLab Releases API</strong> 사용 시 릴리즈 페이지 자동 생성.'
   }
 ];
