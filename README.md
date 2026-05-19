@@ -30,7 +30,7 @@
 | 4단계 — 릴리즈 노트 형식 정의 | `release-notes/vX.Y.Z.md` 표준 포맷 | 필수 |
 | 5단계 — CLAUDE.md 트리거 등록 | Claude Code에 자동 실행 트리거 등록 | 필수 |
 | 6단계 — 업데이트 수신 메커니즘 구축 | 앱 내 배너, CLI 알림 등 형태별 사례 | 선택 |
-| 7단계 — project-memory 연동 | 개발 맥락 누적 + SessionStart/Stop hook | 필수 |
+| 7단계 — project-memory 연동 | 개발 맥락 누적 + SessionStart/Stop/PreCompact hook | 필수 |
 
 ---
 

@@ -11,6 +11,19 @@
 
 ---
 
+## iShare 배포
+
+사용자가 **"iShare 배포해줘"**, **"배포 업데이트해줘"** 같은 말을 하면 아래 명령을 실행한다.
+
+```bash
+node "C:/Users/amurtare/.claude-enterprise/plugins/cache/isharepub/ishare-hosting/0.2.0/cli/index.js" update release-management-guide-by-amurtare "D:/Git/release_management_guide/index.html" "D:/Git/release_management_guide/wsl-setup.html" "D:/Git/release_management_guide/gitlab-pat-setup.html" --entry-file index.html
+```
+
+- `ISHARE_TOKEN`이 현재 프로세스 환경에 없으면 배포가 실패한다. 실패 시 handoff.md에 재시도 명령을 남긴다.
+- 배포 성공 시 `project-memory/log.md`에 `ops | iShare 재배포` 항목을 추가한다.
+
+---
+
 ## 릴리즈 트리거
 
 사용자가 **"버전 올려줘"**, **"릴리즈해줘"**, **"v{숫자} 태그"** 같은 말을 하면 아래 순서로 진행한다.

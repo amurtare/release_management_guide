@@ -32,7 +32,8 @@
       "Bash(python __TRACKED_VAR__/notion-convert-md/scripts/convert_md.py c6b85b6d46db46c7938bcabbaf63ee4a --output __CMDSUB_OUTPUT__/WSL-Windows.md)",
       "Bash(git *)",
       "Bash(node *)",
-      "PowerShell(node \"C:/Users/amurtare/.claude-enterprise/plugins/cache/isharepub/ishare-hosting/0.2.0/cli/index.js\" create release-management-guide-by-amurtare \"D:/Git/release_management_guide/index.html\" \"D:/Git/release_management_guide/wsl-setup.html\" \"D:/Git/release_management_guide/gitlab-pat-setup.html\" --site-url release-management-guide-by-amurtare --entry-file index.html --private)"
+      "PowerShell(node \"C:/Users/amurtare/.claude-enterprise/plugins/cache/isharepub/ishare-hosting/0.2.0/cli/index.js\" create release-management-guide-by-amurtare \"D:/Git/release_management_guide/index.html\" \"D:/Git/release_management_guide/wsl-setup.html\" \"D:/Git/release_management_guide/gitlab-pat-setup.html\" --site-url release-management-guide-by-amurtare --entry-file index.html --private)",
+      "Bash(python \"D:\\\\Git\\\\release_management_guide\\\\.claude\\\\hooks\\\\pre_compact_review.py\")"
     ]
   }
 }

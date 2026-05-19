@@ -27,7 +27,8 @@ release_management_guide/
     │   └── sync-index.md         ← /sync-index 슬래시 커맨드
     └── hooks/
         ├── session_start_brief.py  ← SessionStart hook
-        └── session_stop_review.py  ← Stop hook
+        ├── session_stop_review.py  ← Stop hook
+        └── pre_compact_review.py   ← PreCompact hook
 ```
 
 ---
@@ -37,3 +38,4 @@ release_management_guide/
 - `index.html` ← (`/sync-index`) ← `RELEASE_MANAGEMENT_GUIDE.md`
 - `VERSION` ← SessionStart hook이 읽어 brief 출력
 - `project-memory/` ← Stop hook이 회고 리마인더 주입
+- `project-memory/` ← PreCompact hook이 압축 전 회고 리마인더 주입

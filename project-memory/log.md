@@ -2,6 +2,14 @@
 
 <!-- append-only. 형식: ## [YYYY-MM-DD] <kind> | <한 줄 제목> -->
 
+## [2026-05-19] design | PreCompact hook 추가 — /compact 전 project-memory 리마인더
+
+- /compact 실행 전 실질적 편집이 있으면 project-memory 기록을 유도하는 hook 신설
+- Stop hook 패턴 재사용, 줄 수 기반 편집 추적으로 새 편집 시에만 재발동
+- 마커를 bare int 대신 JSON 구조체(transcript_path + line_count + mtime)로 저장해 트랜스크립트 교체 감지
+- trigger == "auto" 시 block 없이 통과, "manual" 시에만 발동
+- SessionStart hook에 compact 마커 정리 로직 추가
+
 ## [2026-05-19] ops | iShare 호스팅 배포 완료
 
 - bundle_id: 1237, version: 1.0.0, version_id: 5356
@@ -75,6 +83,13 @@
 - gitlab-pat-setup.html: Next Card CTA 단계명 비종속화 (→ index.html#quickstart)
 - wsl-setup.html 신규 커밋 포함
 - sec-title em 강조 단어 핵심 명사로 재배치
+
+## [2026-05-19] design | PreCompact hook 설계 및 Codex 검토 완료 — 구현 대기 중
+
+- /compact 전 project-memory 기록을 유도하는 PreCompact hook 추가 설계
+- 계획 파일: `~/.claude/plans/breezy-cooking-squirrel.md`
+- Codex 검토에서 CRITICAL 2건 발견 → open-questions.md 등록, 구현 전 해소 필요
+- 핵심 결정: 줄 수 기반 트랜스크립트 추적 + 마커 구조화(JSON)는 보완 예정
 
 ## [2026-05-19] research | 앤트로픽 공식 브랜드 컬러 확인
 

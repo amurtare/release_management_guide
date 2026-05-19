@@ -70,20 +70,21 @@ def _insight_tail() -> list[tuple[str, str]]:
     return out
 
 
-def _cleanup_stale_stop_markers(max_age_days: int = 7) -> None:
+def _cleanup_stale_markers(max_age_days: int = 7) -> None:
     marker_dir = SUPPRESS_MARKER.parent
     if not marker_dir.is_dir():
         return
     cutoff = time.time() - max_age_days * 86400
-    try:
-        for p in marker_dir.glob(".session-stop-reviewed-*"):
-            try:
-                if p.stat().st_mtime < cutoff:
-                    p.unlink()
-            except OSError:
-                continue
-    except OSError:
-        return
+    for pattern in (".session-stop-reviewed-*", ".session-compact-reviewed-*"):
+        try:
+            for p in marker_dir.glob(pattern):
+                try:
+                    if p.stat().st_mtime < cutoff:
+                        p.unlink()
+                except OSError:
+                    continue
+        except OSError:
+            continue
 
 
 def main() -> int:
@@ -92,7 +93,7 @@ def main() -> int:
     if not _is_repo_session():
         return 0
 
-    _cleanup_stale_stop_markers()
+    _cleanup_stale_markers()
 
     version   = _read_version()
     log_lines = _log_tail()
