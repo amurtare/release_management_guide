@@ -34,6 +34,37 @@
 - `ref/index.html` 패턴 참고 — 소개 lede 바로 아래에 카드 그리드가 이어지는 방식
 - `sec-head` / `sec-eyebrow` / `sec-title` / `sec-sub` 헤딩 블록 제거, nav anchor `#quickstart`는 hero div에 id로 유지
 
+## [2026-05-19] design | gitlab-pat-setup.html 디자인 가이드 정합성 리팩토링
+
+- html-design-guide.md 확정 전에 만들어진 파일을 가이드 기준으로 전면 정합
+- 20개 클래스 리네이밍: `.part-*`→`.sec-*`, `.faq-*`→`.fh-*`, `.os-*`→`.role-*`, `.codeblock*`→`.code-block*`
+- 누락 패턴 추가: 스크롤 리빌, 히어로 fadeUp, 호버 translateY, `::selection`, `prefers-reduced-motion`, `:focus-visible`
+- 모놀리식 `.wrap` → 섹션별 `.wrap`, `role-bar` sticky화, `.wrap` max-width 860px→1180px (사용자 선택)
+- `:root` 토큰 완전화: `--pN-dark/muted` 10개, `--e4/e5` 추가, 전역 `--accent` 제거
+
+## [2026-05-19] design | gitlab-pat-setup.html + wsl-setup.html 신규 생성
+
+- Notion MD 파일 2개를 html-design-guide.md 기준 독립 HTML 페이지로 변환
+- `gitlab-pat-setup.html`: OS switcher (body[data-os] + role-bar sticky), Part 1 공통 + Part 2-A Mac + Part 2-B Windows, FAQ 4항목
+- `wsl-setup.html`: Windows 전용, 8단계 (MD의 중복 Step 7 → Step 8 정정), 인증서 섹션 pre.scrollable 적용
+- 양 페이지 간 상호 cross-link (next-card, hero lede, sec-sub)
+- callout.tip / callout.note / callout.warning 3종 모두 사용
+
+## [2026-05-19] design | index.html Quick Start 카드 구조 정비 + 크로스페이지 링크 정비
+
+- index.html Quick Start "Git 확인" 카드 삭제 (gitlab-pat-setup.html이 이미 담당)
+- 카드 번호 재정렬: 01 PAT / 02 클론 / 03 적용, 그리드 4→3칸
+- gitlab-pat-setup.html Next Card CTA: `index.html#step3` → `index.html#quickstart` (단계명 비종속)
+- 설계 원칙 → decisions/cross-page-link-stability.md 참고
+
+## [2026-05-19] release | v0.3.0 — UI 구조 간소화 및 콘텐츠 정확도 개선
+
+- 네비게이션 바 3개 파일 전체 제거
+- index.html: Quick Start 3카드 재구성, 워크플로 순서 수정 (요청→결정), hero lede 재작성
+- gitlab-pat-setup.html: Next Card CTA 단계명 비종속화 (→ index.html#quickstart)
+- wsl-setup.html 신규 커밋 포함
+- sec-title em 강조 단어 핵심 명사로 재배치
+
 ## [2026-05-19] research | 앤트로픽 공식 브랜드 컬러 확인
 
 - 출처: github.com/anthropics/skills/blob/main/skills/brand-guidelines/SKILL.md

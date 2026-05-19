@@ -20,7 +20,17 @@
       "Bash(mkdir -p \"D:\\\\Git\\\\release_management_guide\\\\release-notes\")",
       "Bash(mkdir -p \"D:\\\\Git\\\\release_management_guide\\\\docs\")",
       "Bash(git tag *)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(rtk grep *)",
+      "Bash(git ls-remote *)",
+      "Skill(codex:rescue)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 __TRACKED_VAR__/notion-convert-md/scripts/convert_md.py c6b85b6d46db46c7938bcabbaf63ee4a --output __CMDSUB_OUTPUT__/WSL-Windows.md)",
+      "Bash(pip install *)",
+      "Bash(python3 -c \"import notion_client; print\\('ok'\\)\")",
+      "Bash(python -c \"import notion_client; print\\('ok'\\)\")",
+      "Bash(python __TRACKED_VAR__/notion-convert-md/scripts/convert_md.py c6b85b6d46db46c7938bcabbaf63ee4a --output __CMDSUB_OUTPUT__/WSL-Windows.md)",
+      "Bash(git *)"
     ]
   }
 }
