@@ -2,6 +2,11 @@
 
 <!-- append-only. 형식: ## [YYYY-MM-DD] <kind> | <한 줄 제목> -->
 
+## [2026-05-19] ops | iShare 재배포 — version 1.0.2
+
+- `upload 1237` 명령 사용 (`update`는 존재하지 않음, CLI subcommand는 create/upload/status/files/init/deploy)
+- CLAUDE.md iShare 배포 섹션 명령어 수정 완료
+
 ## [2026-05-19] design | PreCompact hook 추가 — /compact 전 project-memory 리마인더
 
 - /compact 실행 전 실질적 편집이 있으면 project-memory 기록을 유도하는 hook 신설
