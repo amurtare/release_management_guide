@@ -15,7 +15,7 @@
 | `CLAUDE.md` | Claude Code에 체크리스트 자동 실행 트리거 등록 |
 | `project-memory/` | 개발 맥락 누적 — 설계 결정·함정·히스토리 |
 | `handoff.md` | 세션 이월 — 미완료 작업의 다음 세션 전달용 |
-| `.claude/hooks/` | SessionStart/Stop/PreCompact hook — 세션 시작·종료·압축 전 자동 컨텍스트 주입·회고 |
+| `.claude/hooks/` | SessionStart/Stop/PreCompact/PreToolUse(ExitPlanMode) hook — 세션 시작·종료·압축 전 자동 컨텍스트 주입·회고·플랜 리뷰 |
 
 ---
 
@@ -122,7 +122,8 @@ project-root/
     └── hooks/
         ├── session_start_brief.py
         ├── session_stop_review.py
-        └── pre_compact_review.py
+        ├── pre_compact_review.py
+        └── pre_plan_exit_review.py
 ```
 
 ### 설치 체크리스트 (이 가이드를 새 프로젝트에 적용할 때)
@@ -136,7 +137,7 @@ project-root/
 - [ ] 앱 내 업데이트 배너 구현 (6단계 참고)
 - [ ] `project-memory/` 디렉토리 구조 생성 (7단계 참고)
 - [ ] `handoff.md` 생성 + `.gitignore`에 추가 (세션 이월용, 로컬 전용 — 7단계 "세션 이월" 참고)
-- [ ] SessionStart/Stop/PreCompact hook 설정
+- [ ] SessionStart/Stop/PreCompact/PreToolUse(ExitPlanMode) hook 설정
 
 ---
 
@@ -524,7 +525,7 @@ def _cleanup_stale_markers(max_age_days: int = 7) -> None:
     if not marker_dir.is_dir():
         return
     cutoff = time.time() - max_age_days * 86400
-    for pattern in (".session-stop-reviewed-*", ".session-compact-reviewed-*"):
+    for pattern in (".session-stop-reviewed-*", ".session-compact-reviewed-*", ".session-plan-reviewed-*"):
         try:
             for p in marker_dir.glob(pattern):
                 try:
@@ -1032,6 +1033,145 @@ if __name__ == "__main__":
   }
 }
 ```
+
+---
+
+### PreToolUse hook — ExitPlanMode 플랜 리뷰 게이트
+
+`.claude/hooks/pre_plan_exit_review.py`로 작성. 플랜 모드를 종료하려 할 때 `~/.claude/plans/`에서 최신 플랜을 찾고, Codex(`codex:codex-rescue`)에 리뷰를 요청하도록 안내한 뒤 차단한다. 세션당 1회만 발동하며, 리뷰 반영 후 두 번째 ExitPlanMode 호출은 자동 통과한다.
+
+```python
+"""PreToolUse hook — ExitPlanMode 호출 시 Codex 플랜 리뷰 게이트."""
+
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+
+for _stream_name in ("stdout", "stderr"):
+    _stream = getattr(sys, _stream_name, None)
+    if _stream is not None and hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+MEM_DIR   = REPO_ROOT / "project-memory"
+
+SUPPRESS_MARKER = Path.home() / ".no-plan-exit-review"
+MARKER_DIR      = SUPPRESS_MARKER.parent
+PLANS_DIR       = Path.home() / ".claude" / "plans"
+
+SAFE_SESSION_ID = re.compile(r"[^A-Za-z0-9_.-]")
+
+
+def _is_repo_session() -> bool:
+    return MEM_DIR.is_dir()
+
+
+def _read_stdin_payload() -> dict:
+    try:
+        raw = sys.stdin.read()
+    except Exception:
+        return {}
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _marker_for(session_id: str) -> Path | None:
+    sid = SAFE_SESSION_ID.sub("_", session_id or "")
+    if not sid:
+        return None
+    return MARKER_DIR / f".session-plan-reviewed-{sid}"
+
+
+def _find_latest_plan() -> Path | None:
+    if not PLANS_DIR.is_dir():
+        return None
+    plans = sorted(
+        (p for p in PLANS_DIR.glob("*.md") if p.is_file()),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    return plans[0] if plans else None
+
+
+REVIEW_INSTRUCTION = (
+    "[플랜 리뷰 게이트 — 세션당 1회 발동]\n"
+    "ExitPlanMode가 차단되었습니다. 플랜을 Codex에 보내 리뷰를 받아야 합니다.\n"
+    "\n"
+    "1. Agent 도구를 subagent_type \"codex:codex-rescue\"로 호출하세요.\n"
+    "2. prompt에 플랜 파일({plan_path})의 내용을 포함하여 리뷰를 요청하세요.\n"
+    "   리뷰 관점: 실현 가능성, 완전성, 잠재적 문제, 놓친 엣지 케이스\n"
+    "3. 리뷰 결과를 확인하고 필요하면 플랜을 수정하세요.\n"
+    "4. ExitPlanMode를 다시 호출하세요 (2회차는 자동 통과).\n"
+)
+
+
+def main() -> int:
+    payload = _read_stdin_payload()
+
+    if SUPPRESS_MARKER.exists():
+        return 0
+    if not _is_repo_session():
+        return 0
+
+    session_id = str(payload.get("session_id") or "")
+
+    marker = _marker_for(session_id)
+    if marker is None:
+        return 0
+    if marker.exists():
+        return 0
+
+    plan_path = _find_latest_plan()
+    if plan_path is None:
+        return 0
+
+    try:
+        MARKER_DIR.mkdir(parents=True, exist_ok=True)
+        marker.touch()
+    except OSError:
+        return 0
+
+    reason = REVIEW_INSTRUCTION.format(plan_path=plan_path)
+    sys.stdout.write(json.dumps({"decision": "block", "reason": reason}, ensure_ascii=False))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+**settings.json 등록:**
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pre_plan_exit_review.py\""
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+위 설정을 기존 SessionStart/Stop/PreCompact hook과 같은 `settings.json`의 `hooks` 객체에 병합한다.
 
 ---
 
