@@ -137,7 +137,9 @@ project-root/
 - [ ] 앱 내 업데이트 배너 구현 (6단계 참고)
 - [ ] `project-memory/` 디렉토리 구조 생성 (7단계 참고)
 - [ ] `handoff.md` 생성 + `.gitignore`에 추가 (세션 이월용, 로컬 전용 — 7단계 "세션 이월" 참고)
-- [ ] SessionStart/Stop/PreCompact/PreToolUse(ExitPlanMode) hook 설정
+- [ ] hook **파일**을 `.claude/hooks/`에 복사
+- [ ] hook을 `settings.json`(또는 `settings.local.json`)의 `hooks` 객체에 **등록** — ⚠️ 파일 복사만으로는 발동하지 않는다. 등록이 없으면 훅은 침묵한다.
+- [ ] 등록 검증: plan 모드 → ExitPlanMode 시도 → "플랜 리뷰 게이트" 차단 메시지 확인 (Codex·Copilot 둘 다 미설치면 차단 없이 통과가 정상)
 
 ---
 
@@ -1038,10 +1040,19 @@ if __name__ == "__main__":
 
 ### PreToolUse hook — ExitPlanMode 플랜 리뷰 게이트
 
-`.claude/hooks/pre_plan_exit_review.py`로 작성. 플랜 모드를 종료하려 할 때 `~/.claude/plans/`에서 최신 플랜을 찾고, Codex(`codex:codex-rescue`)에 리뷰를 요청하도록 안내한 뒤 차단한다. 세션당 1회만 발동하며, 리뷰 반영 후 두 번째 ExitPlanMode 호출은 자동 통과한다.
+`.claude/hooks/pre_plan_exit_review.py`로 작성. 플랜 모드를 종료하려 할 때 설치된 외부 리뷰어(Codex 또는 Copilot)를 런타임에 감지해 리뷰를 요청하도록 안내한 뒤 차단한다. **사용 가능한 외부 리뷰어가 있을 때만 강제**하며, 둘 다 없으면 의도적으로 통과시킨다. 세션당 1회만 발동하며, 리뷰 반영 후 두 번째 ExitPlanMode 호출은 자동 통과한다.
+
+리뷰어 선택 규칙:
+- 빌트인 **Codex** 플러그인 설치 → `codex:codex-rescue` (Copilot과 동시 설치 시 Codex 우선)
+- **Copilot** 플러그인(`ghcopilot_plugin_for_claude`) 설치 → `copilot:copilot-rescue`
+- **둘 다 없음** → 게이트 통과 (검수 요청 안 함)
 
 ```python
-"""PreToolUse hook — ExitPlanMode 호출 시 Codex 플랜 리뷰 게이트."""
+"""PreToolUse hook — ExitPlanMode 호출 시 플랜 리뷰 게이트.
+
+설치된 외부 리뷰어(Codex 또는 Copilot)를 런타임에 감지해 리뷰를 요청한다.
+둘 다 없으면 게이트를 통과시킨다(사용 가능한 외부 리뷰어가 있을 때만 강제).
+"""
 
 from __future__ import annotations
 
@@ -1064,6 +1075,18 @@ MEM_DIR   = REPO_ROOT / "project-memory"
 SUPPRESS_MARKER = Path.home() / ".no-plan-exit-review"
 MARKER_DIR      = SUPPRESS_MARKER.parent
 PLANS_DIR       = Path.home() / ".claude" / "plans"
+
+# 플러그인 매니페스트 경로 (계정마다 codex는 .claude, copilot은 .claude-enterprise에 분리)
+_PLUGIN_MANIFESTS = [
+    Path.home() / ".claude" / "plugins" / "installed_plugins.json",
+    Path.home() / ".claude-enterprise" / "plugins" / "installed_plugins.json",
+]
+
+# 리뷰어별 subagent_type
+_REVIEWER_SUBAGENT = {
+    "codex":   "codex:codex-rescue",
+    "copilot": "copilot:copilot-rescue",
+}
 
 SAFE_SESSION_ID = re.compile(r"[^A-Za-z0-9_.-]")
 
@@ -1104,11 +1127,45 @@ def _find_latest_plan() -> Path | None:
     return plans[0] if plans else None
 
 
+def _detect_reviewer() -> str | None:
+    """설치된 리뷰어를 감지한다. Codex 우선, 없으면 Copilot, 둘 다 없으면 None.
+
+    두 매니페스트 경로를 모두 스캔하며, 파일/JSON 파싱 오류는 조용히 무시한다.
+    키 형식 'name@marketplace' 에서 '@' 앞 이름만으로 판정해 marketplace 변동에 강하다.
+    """
+    found: set[str] = set()
+
+    for manifest_path in _PLUGIN_MANIFESTS:
+        try:
+            raw = manifest_path.read_text(encoding="utf-8")
+            data = json.loads(raw)
+        except Exception:
+            continue
+
+        plugins = data.get("plugins") if isinstance(data, dict) else None
+        if not isinstance(plugins, dict):
+            continue
+
+        for key in plugins:
+            if not isinstance(key, str):
+                continue
+            name = key.split("@", 1)[0].lower()
+            if name in _REVIEWER_SUBAGENT:
+                found.add(name)
+
+    # Codex 우선 (Copilot은 Codex 미사용 환경의 대체제)
+    if "codex" in found:
+        return "codex"
+    if "copilot" in found:
+        return "copilot"
+    return None
+
+
 REVIEW_INSTRUCTION = (
     "[플랜 리뷰 게이트 — 세션당 1회 발동]\n"
-    "ExitPlanMode가 차단되었습니다. 플랜을 Codex에 보내 리뷰를 받아야 합니다.\n"
+    "ExitPlanMode가 차단되었습니다. 플랜을 외부 리뷰어에 보내 검수를 받아야 합니다.\n"
     "\n"
-    "1. Agent 도구를 subagent_type \"codex:codex-rescue\"로 호출하세요.\n"
+    "1. Agent 도구를 subagent_type \"{subagent_type}\"으로 호출하세요.\n"
     "2. prompt에 플랜 파일({plan_path})의 내용을 포함하여 리뷰를 요청하세요.\n"
     "   리뷰 관점: 실현 가능성, 완전성, 잠재적 문제, 놓친 엣지 케이스\n"
     "3. 리뷰 결과를 확인하고 필요하면 플랜을 수정하세요.\n"
@@ -1132,17 +1189,24 @@ def main() -> int:
     if marker.exists():
         return 0
 
+    # 리뷰어 감지 — None이면 마커를 남기지 않고 통과
+    reviewer = _detect_reviewer()
+    if reviewer is None:
+        return 0
+
     plan_path = _find_latest_plan()
     if plan_path is None:
         return 0
 
+    # 마커는 리뷰어가 확인된 경우에만 생성
     try:
         MARKER_DIR.mkdir(parents=True, exist_ok=True)
         marker.touch()
     except OSError:
         return 0
 
-    reason = REVIEW_INSTRUCTION.format(plan_path=plan_path)
+    subagent_type = _REVIEWER_SUBAGENT[reviewer]
+    reason = REVIEW_INSTRUCTION.format(plan_path=plan_path, subagent_type=subagent_type)
     sys.stdout.write(json.dumps({"decision": "block", "reason": reason}, ensure_ascii=False))
     return 0
 
@@ -1172,6 +1236,13 @@ if __name__ == "__main__":
 ```
 
 위 설정을 기존 SessionStart/Stop/PreCompact hook과 같은 `settings.json`의 `hooks` 객체에 병합한다.
+
+> **⚠️ 등록 후 검증 필수**: plan 모드에서 ExitPlanMode를 호출했을 때 "플랜 리뷰 게이트" 차단 메시지가 뜨는지 확인한다. 뜨지 않을 경우 아래 원인을 순서대로 점검:
+> 1. `settings.json`에 `hooks` 등록 누락 — 파일 복사만으로는 발동하지 않는다
+> 2. `hooks` 키 자체가 없거나 JSON 구조 오류
+> 3. `matcher` 값이 `ExitPlanMode`와 정확히 불일치
+> 4. Codex·Copilot 플러그인이 둘 다 미설치 — **이 경우는 의도적 통과이므로 정상**
+> 5. `python` 명령이 PATH에 없는 경우 (Windows에서 `py`만 있으면 `command`의 `python`을 `py`로 교체)
 
 ---
 
