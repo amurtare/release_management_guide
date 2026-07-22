@@ -523,20 +523,25 @@ def _handoff_pending() -> list[str]:
 
 
 def _cleanup_stale_markers(max_age_days: int = 7) -> None:
-    marker_dir = SUPPRESS_MARKER.parent
-    if not marker_dir.is_dir():
-        return
     cutoff = time.time() - max_age_days * 86400
-    for pattern in (".session-stop-reviewed-*", ".session-compact-reviewed-*", ".session-plan-reviewed-*"):
-        try:
-            for p in marker_dir.glob(pattern):
-                try:
-                    if p.stat().st_mtime < cutoff:
-                        p.unlink()
-                except OSError:
-                    continue
-        except OSError:
-            continue
+
+    def _sweep(marker_dir: Path, patterns: tuple[str, ...]) -> None:
+        if not marker_dir.is_dir():
+            return
+        for pattern in patterns:
+            try:
+                for p in marker_dir.glob(pattern):
+                    try:
+                        if p.stat().st_mtime < cutoff:
+                            p.unlink()
+                    except OSError:
+                        continue
+            except OSError:
+                continue
+
+    _sweep(SUPPRESS_MARKER.parent, (".session-stop-reviewed-*", ".session-compact-reviewed-*"))
+    # 플랜 리뷰 마커는 세션이 아닌 플랜 파일 기준이라 전용 하위 디렉터리에 보관된다.
+    _sweep(SUPPRESS_MARKER.parent / "plan-review-markers", (".plan-reviewed-*",))
 
 
 def main() -> int:
@@ -1040,7 +1045,9 @@ if __name__ == "__main__":
 
 ### PreToolUse hook — ExitPlanMode 플랜 리뷰 게이트
 
-`.claude/hooks/pre_plan_exit_review.py`로 작성. 플랜 모드를 종료하려 할 때 설치된 외부 리뷰어(Codex 또는 Copilot)를 런타임에 감지해 리뷰를 요청하도록 안내한 뒤 차단한다. **사용 가능한 외부 리뷰어가 있을 때만 강제**하며, 둘 다 없으면 의도적으로 통과시킨다. 세션당 1회만 발동하며, 리뷰 반영 후 두 번째 ExitPlanMode 호출은 자동 통과한다.
+`.claude/hooks/pre_plan_exit_review.py`로 작성. 플랜 모드를 종료하려 할 때 설치된 외부 리뷰어(Codex 또는 Copilot)를 런타임에 감지해 리뷰를 요청하도록 안내한 뒤 차단한다. **사용 가능한 외부 리뷰어가 있을 때만 강제**하며, 둘 다 없으면 의도적으로 통과시킨다. **플랜 파일 1개당 1회**만 발동하며, 리뷰 반영 후 같은 플랜에 대한 두 번째 ExitPlanMode 호출은 자동 통과한다.
+
+> **세션 ID 기준 마커는 쓰지 않는다.** 같은 세션 안에서 재플랜(replan)하면 세션 ID는 그대로라서, 마커를 세션 단위로 찍으면 두 번째 플랜은 리뷰 없이 통과해버린다. 그래서 마커 키는 **최신 플랜 파일 이름**(`~/.claude/plans/*.md`)으로 잡고, 전용 디렉터리(`~/.claude/plan-review-markers/`)에 `os.O_CREAT | os.O_EXCL`로 원자적 생성한다 — 동시에 여러 ExitPlanMode 호출이 들어와도 리뷰 요청이 중복되지 않는다.
 
 리뷰어 선택 규칙:
 - 빌트인 **Codex** 플러그인 설치 → `codex:codex-rescue` (Copilot과 동시 설치 시 Codex 우선)
@@ -1056,7 +1063,9 @@ if __name__ == "__main__":
 
 from __future__ import annotations
 
+import hashlib
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -1073,7 +1082,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 MEM_DIR   = REPO_ROOT / "project-memory"
 
 SUPPRESS_MARKER = Path.home() / ".no-plan-exit-review"
-MARKER_DIR      = SUPPRESS_MARKER.parent
+MARKER_DIR      = Path.home() / ".claude" / "plan-review-markers"
 PLANS_DIR       = Path.home() / ".claude" / "plans"
 
 # 플러그인 매니페스트 경로 (계정마다 codex는 .claude, copilot은 .claude-enterprise에 분리)
@@ -1088,7 +1097,7 @@ _REVIEWER_SUBAGENT = {
     "copilot": "copilot:copilot-rescue",
 }
 
-SAFE_SESSION_ID = re.compile(r"[^A-Za-z0-9_.-]")
+SAFE_KEY = re.compile(r"[^A-Za-z0-9_.-]")
 
 
 def _is_repo_session() -> bool:
@@ -1109,11 +1118,11 @@ def _read_stdin_payload() -> dict:
     return data if isinstance(data, dict) else {}
 
 
-def _marker_for(session_id: str) -> Path | None:
-    sid = SAFE_SESSION_ID.sub("_", session_id or "")
-    if not sid:
-        return None
-    return MARKER_DIR / f".session-plan-reviewed-{sid}"
+def _marker_for(plan_path: Path) -> Path:
+    key = SAFE_KEY.sub("_", plan_path.stem)
+    if not key:  # ".md" 등 빈 stem → 경로 해시 폴백 (충돌/공통키 방지)
+        key = hashlib.sha1(str(plan_path).encode("utf-8")).hexdigest()[:16]
+    return MARKER_DIR / f".plan-reviewed-{key}"
 
 
 def _find_latest_plan() -> Path | None:
@@ -1162,46 +1171,41 @@ def _detect_reviewer() -> str | None:
 
 
 REVIEW_INSTRUCTION = (
-    "[플랜 리뷰 게이트 — 세션당 1회 발동]\n"
+    "[플랜 리뷰 게이트 — 플랜마다 1회 발동]\n"
     "ExitPlanMode가 차단되었습니다. 플랜을 외부 리뷰어에 보내 검수를 받아야 합니다.\n"
     "\n"
     "1. Agent 도구를 subagent_type \"{subagent_type}\"으로 호출하세요.\n"
     "2. prompt에 플랜 파일({plan_path})의 내용을 포함하여 리뷰를 요청하세요.\n"
     "   리뷰 관점: 실현 가능성, 완전성, 잠재적 문제, 놓친 엣지 케이스\n"
     "3. 리뷰 결과를 확인하고 필요하면 플랜을 수정하세요.\n"
-    "4. ExitPlanMode를 다시 호출하세요 (2회차는 자동 통과).\n"
+    "4. ExitPlanMode를 다시 호출하세요 (같은 플랜 2회차는 자동 통과).\n"
 )
 
 
 def main() -> int:
-    payload = _read_stdin_payload()
+    payload = _read_stdin_payload()  # stdin 소비 목적 유지 (session_id는 더는 안 씀)
 
     if SUPPRESS_MARKER.exists():
         return 0
     if not _is_repo_session():
         return 0
 
-    session_id = str(payload.get("session_id") or "")
-
-    marker = _marker_for(session_id)
-    if marker is None:
-        return 0
-    if marker.exists():
-        return 0
-
-    # 리뷰어 감지 — None이면 마커를 남기지 않고 통과
-    reviewer = _detect_reviewer()
+    reviewer = _detect_reviewer()  # 리뷰어 없으면 통과
     if reviewer is None:
         return 0
 
-    plan_path = _find_latest_plan()
+    plan_path = _find_latest_plan()  # 플랜 없으면 통과
     if plan_path is None:
         return 0
 
-    # 마커는 리뷰어가 확인된 경우에만 생성
+    marker = _marker_for(plan_path)  # 플랜(파일) 기준 마커
+
+    # 원자적 생성: 이미 있으면(이 플랜은 리뷰됨) FileExistsError → 통과
     try:
         MARKER_DIR.mkdir(parents=True, exist_ok=True)
-        marker.touch()
+        os.close(os.open(str(marker), os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+    except FileExistsError:
+        return 0
     except OSError:
         return 0
 
