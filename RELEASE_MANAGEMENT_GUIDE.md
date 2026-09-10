@@ -15,7 +15,7 @@
 | `CLAUDE.md` | Claude Code에 체크리스트 자동 실행 트리거 등록 |
 | `project-memory/` | 개발 맥락 누적 — 설계 결정·함정·히스토리 |
 | `handoff.md` | 세션 이월 — 미완료 작업의 다음 세션 전달용 |
-| `.claude/hooks/` | SessionStart/Stop/PreCompact/PreToolUse(ExitPlanMode) hook — 세션 시작·종료·압축 전 자동 컨텍스트 주입·회고·플랜 리뷰 |
+| `.claude/hooks/` | SessionStart/PostToolUse(Bash)/PreCompact/PreToolUse(ExitPlanMode) hook — 세션 시작 컨텍스트 주입·커밋 성사 후 회고·압축 전 회고·플랜 리뷰 |
 
 ---
 
@@ -121,7 +121,7 @@ project-root/
     ├── settings.json
     └── hooks/
         ├── session_start_brief.py
-        ├── session_stop_review.py
+        ├── post_commit_review.py
         ├── pre_compact_review.py
         └── pre_plan_exit_review.py
 ```
@@ -139,7 +139,8 @@ project-root/
 - [ ] `handoff.md` 생성 + `.gitignore`에 추가 (세션 이월용, 로컬 전용 — 7단계 "세션 이월" 참고)
 - [ ] hook **파일**을 `.claude/hooks/`에 복사
 - [ ] hook을 `settings.json`(또는 `settings.local.json`)의 `hooks` 객체에 **등록** — ⚠️ 파일 복사만으로는 발동하지 않는다. 등록이 없으면 훅은 침묵한다.
-- [ ] 등록 검증: plan 모드 → ExitPlanMode 시도 → "플랜 리뷰 게이트" 차단 메시지 확인 (Codex·Copilot 둘 다 미설치면 차단 없이 통과가 정상)
+- [ ] 등록 검증(플랜 리뷰): plan 모드 → ExitPlanMode 시도 → "플랜 리뷰 게이트" 차단 메시지 확인 (Codex·Copilot 둘 다 미설치면 차단 없이 통과가 정상)
+- [ ] 등록 검증(커밋 회고): 저장소에서 한 번 커밋 → "커밋 회고" 리마인더가 뜨는지 확인 (설치 후 이 머신의 첫 커밋은 baseline 설정이라 안 뜨는 게 정상, 두 번째 커밋부터 발동)
 
 ---
 
@@ -616,17 +617,33 @@ if __name__ == "__main__":
 }
 ```
 
-### Stop hook (회고 리마인더)
+### PostToolUse hook (커밋 성사 후 회고)
 
-`.claude/hooks/session_stop_review.py`로 작성. 에이전트가 세션을 끝내려 할 때 실질적 파일 변경이 있었으면 project-memory 회고 리마인더를 1회 주입한다.
+`.claude/hooks/post_commit_review.py`로 작성. Bash tool이 끝날 때마다 실행되어 **HEAD sha가 직전 처리값보다 전진했는지**로 커밋 성사를 감지하고, 새 커밋이 얹혔으면 project-memory 회고 리마인더를 주입한다.
+
+이전 설계는 "세션 종료 시 1회"였으나, Stop 이벤트는 세션 종료가 아니라 **매 턴 종료마다** 발동해 사용자 선택지(AskUserQuestion) 대기나 평범한 턴 종료에서도 오발동했고, 애초에 "세션 종료"를 훅 시점에 감지할 방법이 없었다. 그래서 회고를 **작업 한 단위가 완료되는 실제 체크포인트 = 커밋**에 묶는다. 커밋 여부를 명령 문자열로 추측하지 않고 **실제 HEAD 변화**로만 판정하므로, 문서 안 `git commit` 문자열 오탐·재실행 루프·마커 누적이 원천적으로 없다.
+
+동작 요약:
+- HEAD가 직전 처리값과 같으면(읽기전용 명령 등) 조용히 통과.
+- `merge-base --is-ancestor`로 **직전 값 위에 새 커밋이 얹힌 경우만** 회고. `--amend`·`reset`·`checkout`·`rebase` 등 HEAD가 옆으로 이동한 경우는 새 작업 커밋이 아니므로 발동하지 않는다.
+- 커밋된 파일이 전부 `project-memory/`·`.claude/`이면(회고 결과만 커밋한 경우) 발동하지 않아 재차단 루프가 없다.
+- 상태 파일(`~/.claude/commit-review-state/<repo-hash>`)에 마지막 처리 HEAD 하나만 저장 — 저장소당 파일 하나라 누적이 없다. 이 머신에서 훅 설치 후 **첫 커밋은 baseline 설정**이라 발동하지 않고, 두 번째 커밋부터 발동한다.
+- **한계**: 커밋이 전혀 없는 세션(조사·설계 논의 등)은 트리거가 없다. 이런 세션의 회고는 `/compact` 시 PreCompact hook과 `handoff.md`가 담당한다.
 
 ```python
-"""Stop hook — project-memory 회고 리마인더 (세션당 1회)."""
+"""PostToolUse hook — 커밋 성사(HEAD 전진) 직후 project-memory 회고 유도.
+
+Bash tool이 끝날 때마다 실행되어 HEAD sha가 직전 처리값보다 전진했는지 확인한다.
+새 커밋이 얹혔으면(merge-base --is-ancestor) 회고 리마인더를 주입한다.
+명령 문자열을 파싱해 "커밋인지" 추측하지 않고 실제 HEAD 변화로만 판정하므로,
+문서 안 'git commit' 문자열 오탐·재실행 루프·마커 누적이 원천적으로 없다.
+"""
 
 from __future__ import annotations
 
+import hashlib
 import json
-import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -641,12 +658,11 @@ for _stream_name in ("stdout", "stderr"):
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 MEM_DIR   = REPO_ROOT / "project-memory"
 
-# suppress 마커 경로는 프로젝트 전용으로 변경할 것
-SUPPRESS_MARKER = Path.home() / ".no-session-stop-review"
-MARKER_DIR      = SUPPRESS_MARKER.parent
+SUPPRESS_MARKER = Path.home() / ".no-commit-review"
+STATE_DIR       = Path.home() / ".claude" / "commit-review-state"
 
-EDIT_TOOLS      = {"Edit", "Write", "NotebookEdit", "MultiEdit"}
-SAFE_SESSION_ID = re.compile(r"[^A-Za-z0-9_.-]")
+# 회고 대상에서 면제할 경로 접두(회고 결과·설정 파일만 담긴 커밋은 재발동 안 함)
+EXEMPT_PREFIXES = ("project-memory/", ".claude/")
 
 
 def _is_repo_session() -> bool:
@@ -667,65 +683,73 @@ def _read_stdin_payload() -> dict:
     return data if isinstance(data, dict) else {}
 
 
-def _is_substantial_edit(file_path: str) -> bool:
-    """project-memory/, .claude/ 외부 파일이면 회고할 가치가 있는 변경으로 간주."""
-    if not file_path:
-        return False
-    fp   = file_path.replace("\\", "/")
-    repo = str(REPO_ROOT).replace("\\", "/")
-    rel  = fp[len(repo):].lstrip("/") if fp.startswith(repo) else None
-    if rel is None:
-        return True  # 저장소 밖 편집 — 보수적으로 substantial
-    return bool(rel) and not (
-        rel.startswith("project-memory/") or rel.startswith(".claude/")
-    )
-
-
-def _scan_transcript(transcript_path: str) -> bool:
-    if not transcript_path:
-        return False
-    p = Path(transcript_path)
-    if not p.exists():
-        return False
+def _git(args: list[str]) -> str | None:
+    """git 명령을 REPO_ROOT에서 실행. 실패 시 None."""
     try:
-        with p.open("r", encoding="utf-8", errors="replace") as fh:
-            for line in fh:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    entry = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                msg = entry.get("message")
-                if not isinstance(msg, dict):
-                    continue
-                for block in (msg.get("content") or []):
-                    if not isinstance(block, dict):
-                        continue
-                    if block.get("type") != "tool_use":
-                        continue
-                    if block.get("name") not in EDIT_TOOLS:
-                        continue
-                    inp = block.get("input") or {}
-                    fp  = inp.get("file_path") or inp.get("notebook_path") or ""
-                    if _is_substantial_edit(fp):
-                        return True
-    except OSError:
-        return False
-    return False
-
-
-def _marker_for(session_id: str) -> Path | None:
-    sid = SAFE_SESSION_ID.sub("_", session_id or "")
-    if not sid:
+        out = subprocess.run(
+            ["git", *args],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except Exception:
         return None
-    return MARKER_DIR / f".session-stop-reviewed-{sid}"
+    if out.returncode != 0:
+        return None
+    return out.stdout.strip()
+
+
+def _git_ok(args: list[str]) -> bool:
+    """종료코드만 필요한 git 명령(예: merge-base --is-ancestor). 성공 시 True."""
+    try:
+        out = subprocess.run(
+            ["git", *args],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except Exception:
+        return False
+    return out.returncode == 0
+
+
+def _state_file() -> Path:
+    repo_key = hashlib.sha1(str(REPO_ROOT).encode("utf-8")).hexdigest()[:8]
+    return STATE_DIR / repo_key
+
+
+def _read_state() -> str | None:
+    try:
+        val = _state_file().read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return val or None
+
+
+def _write_state(head: str) -> None:
+    try:
+        STATE_DIR.mkdir(parents=True, exist_ok=True)
+        _state_file().write_text(head, encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _range_is_exempt(last: str, current: str) -> bool:
+    """last..current 에 커밋된 파일이 전부 EXEMPT_PREFIXES 이면 True."""
+    out = _git(["log", "--format=", "--name-only", f"{last}..{current}"])
+    if out is None:
+        return False  # 판단 불가 → 회고 유도 쪽으로
+    files = [ln.strip() for ln in out.splitlines() if ln.strip()]
+    if not files:
+        return False
+    return all(f.startswith(EXEMPT_PREFIXES) for f in files)
 
 
 REMINDER = (
-    "[세션 마무리 회고 — 세션당 1회 발동]\n"
-    "이번 세션에서 다음 세션의 에이전트에게 유용할 만한 흔적을 project-memory/ 에 남길지 검토하세요.\n"
+    "[커밋 회고 — 방금 만든 커밋 단위]\n"
+    "방금 커밋된 작업 단위에서 다음 세션의 에이전트에게 유용할 흔적을 project-memory/ 에 남길지 검토하세요.\n"
     "규칙은 project-memory/index.md, project-memory/insight/README.md, CLAUDE.md '메인테이너 워크플로' 섹션 참고.\n"
     "\n"
     "후보:\n"
@@ -735,38 +759,42 @@ REMINDER = (
     "- 반복적으로 부딪힐 함정 → project-memory/gotchas.md 항목 추가\n"
     "- 설계 결정의 의도 → project-memory/decisions/<topic>.md\n"
     "- 미해결 이슈/조사 중 가설 → project-memory/open-questions.md\n"
-    "- 미완료 작업이 남아 있으면 → handoff.md '남은 작업' 섹션에 기록 (다음 세션 SessionStart에서 자동 표시됨)\n"
+    "- 미완료 작업이 남아 있으면 → handoff.md '남은 작업' 섹션에 기록\n"
     "\n"
     "원칙: raw 코드·release-notes·git log에 이미 있는 사실은 다시 적지 않음.\n"
-    "남길 게 없으면 '없음' 한 줄로 답하고 턴을 끝내세요.\n"
+    "기록할 내용은 지금 작성하면 되고(다음 커밋에 함께 포함하면 됨), 남길 게 없으면 '없음' 한 줄로 답하고 진행하세요.\n"
 )
 
 
 def main() -> int:
-    payload = _read_stdin_payload()
-    if payload.get("stop_hook_active"):
-        return 0
+    _read_stdin_payload()  # stdin 소비(명령 문자열은 감지에 쓰지 않음 — HEAD로만 판정)
+
     if SUPPRESS_MARKER.exists():
         return 0
     if not _is_repo_session():
         return 0
 
-    session_id      = str(payload.get("session_id") or "")
-    transcript_path = str(payload.get("transcript_path") or "")
-
-    marker = _marker_for(session_id)
-    if marker is None:
-        return 0
-    if marker.exists():
+    current = _git(["rev-parse", "HEAD"])
+    if current is None:  # 비-git / 커밋 없음
         return 0
 
-    if not _scan_transcript(transcript_path):
+    last = _read_state()
+    if last is None:  # 콜드스타트 — baseline만 세우고 통과
+        _write_state(current)
         return 0
 
-    try:
-        MARKER_DIR.mkdir(parents=True, exist_ok=True)
-        marker.touch()
-    except OSError:
+    if current == last:  # HEAD 불변 — 커밋 아님
+        return 0
+
+    # HEAD 변함: last 위에 새 커밋이 얹혔을 때만 회고
+    if not _git_ok(["merge-base", "--is-ancestor", last, current]):
+        # sideways(checkout/reset/rebase/amend 등) — 새 작업 커밋 아님
+        _write_state(current)
+        return 0
+
+    _write_state(current)
+
+    if _range_is_exempt(last, current):  # 회고·설정 파일만 담긴 커밋 → 재발동 안 함
         return 0
 
     sys.stdout.write(json.dumps({"decision": "block", "reason": REMINDER}, ensure_ascii=False))
@@ -777,17 +805,18 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-**settings.json 등록:**
+**settings.json 등록** (matcher `"Bash"`로 Bash tool 호출마다 실행):
 
 ```json
 {
   "hooks": {
-    "Stop": [
+    "PostToolUse": [
       {
+        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/session_stop_review.py\""
+            "command": "python \"${CLAUDE_PROJECT_DIR}/.claude/hooks/post_commit_review.py\""
           }
         ]
       }
@@ -798,7 +827,7 @@ if __name__ == "__main__":
 
 ### PreCompact hook (압축 전 리마인더)
 
-`.claude/hooks/pre_compact_review.py`로 작성. `/compact` 실행 직전에 실질적 파일 변경이 있었으면 project-memory 회고 리마인더를 주입한다. Stop hook과 달리 **새 편집이 있을 때마다** 발동하며, `auto` 자동 압축 시에는 조용히 통과한다.
+`.claude/hooks/pre_compact_review.py`로 작성. `/compact` 실행 직전에 실질적 파일 변경이 있었으면 project-memory 회고 리마인더를 주입한다. 커밋 회고 hook이 커밋 성사 시점을 잡는 것과 달리, 이 hook은 **커밋 없이 컨텍스트가 압축되는 경우**를 커버하며 새 편집이 있을 때마다 발동하고, `auto` 자동 압축 시에는 조용히 통과한다.
 
 ```python
 """PreCompact hook — 컨텍스트 압축 전 project-memory 리마인더."""
@@ -1239,7 +1268,7 @@ if __name__ == "__main__":
 }
 ```
 
-위 설정을 기존 SessionStart/Stop/PreCompact hook과 같은 `settings.json`의 `hooks` 객체에 병합한다.
+위 설정을 기존 SessionStart/PostToolUse/PreCompact hook과 같은 `settings.json`의 `hooks` 객체에 병합한다.
 
 > **⚠️ 등록 후 검증 필수**: plan 모드에서 ExitPlanMode를 호출했을 때 "플랜 리뷰 게이트" 차단 메시지가 뜨는지 확인한다. 뜨지 않을 경우 아래 원인을 순서대로 점검:
 > 1. `settings.json`에 `hooks` 등록 누락 — 파일 복사만으로는 발동하지 않는다
@@ -1303,7 +1332,7 @@ project-memory는 **영구 지식**(설계 결정, 함정, 아키텍처)을 보�
 
 다음 3가지 시점에 handoff.md를 갱신한다.
 
-1. **세션 정상 종료 시 미완료 작업이 있을 때** — Stop hook 리마인더가 안내
+1. **커밋 시점에 미완료 작업이 남아 있을 때** — 커밋 회고 hook 리마인더가 project-memory 기록과 함께 handoff 갱신을 안내
 2. **`/compact` 실행 전** — 컨텍스트 압축으로 전반부 맥락이 희석되므로, 압축 전에 현재 상태를 기록
 3. **되돌릴 수 없는 작업 실패 시** — force push, 외부 API 배포, DB 마이그레이션 등이 실패했을 때 재시도 정보를 보존
 
